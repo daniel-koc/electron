@@ -54,7 +54,7 @@ executors:
         description: "macOS executor size"
         default: macos.x86.medium.gen2
         type: enum
-        enum: ["macos.x86.medium.gen2", "large"]
+        enum: ["macos.x86.medium.gen2", "xlarge"]
       xcode:
         description: "xcode version"
         default: "12.4.0"
