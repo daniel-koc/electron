@@ -35,8 +35,6 @@ def mkdir_p(path):
 
 def main(dump_syms, binary, out_dir, stamp_file, dsym_file=None):
   args = [dump_syms]
-  if sys.platform == "darwin" and os.environ.get("TARGET_ARCH") == "arm64":
-    args += ["-a", "arm64"]
   if dsym_file:
     args += ["-g", dsym_file]
   args += [binary]
