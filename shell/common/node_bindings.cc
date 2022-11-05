@@ -64,6 +64,7 @@
   V(electron_browser_printing)           \
   V(electron_browser_push_notifications) \
   V(electron_browser_safe_storage)       \
+  V(electron_browser_scroll_view)        \
   V(electron_browser_session)            \
   V(electron_browser_screen)             \
   V(electron_browser_system_preferences) \

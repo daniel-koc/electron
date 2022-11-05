@@ -36,7 +36,7 @@ class View : public gin_helper::EventEmitter<View>, public views::ViewObserver {
   gfx::Rect GetBounds();
   void SetLayout(v8::Isolate* isolate, v8::Local<v8::Object> value);
   std::vector<v8::Local<v8::Value>> GetChildren();
-  void SetBackgroundColor(absl::optional<WrappedSkColor> color);
+  virtual void SetBackgroundColor(absl::optional<WrappedSkColor> color);
   void SetVisible(bool visible);
 
   // views::ViewObserver
@@ -46,6 +46,9 @@ class View : public gin_helper::EventEmitter<View>, public views::ViewObserver {
 
   views::View* view() const { return view_; }
 
+  // Should delete the |view_| in destructor.
+  void set_delete_view(bool should) { delete_view_ = should; }
+
   // disable copy
   View(const View&) = delete;
   View& operator=(const View&) = delete;
@@ -54,9 +57,6 @@ class View : public gin_helper::EventEmitter<View>, public views::ViewObserver {
   explicit View(views::View* view);
   View();
   ~View() override;
-
-  // Should delete the |view_| in destructor.
-  void set_delete_view(bool should) { delete_view_ = should; }
 
  private:
   std::vector<v8::Global<v8::Object>> child_views_;

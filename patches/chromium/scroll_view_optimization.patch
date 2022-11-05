@@ -1,0 +1,63 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: daniel.koc@gmail.com
+Date: Fri, 5 Sep 2022 10:31:16 -0500
+Subject: ScrollView optimization
+
+- Fix gesture scrolling 
+- Do not double layout calls when scroll-bars are hidden or disabled
+
+diff --git a/content/browser/web_contents/web_contents_view_aura.cc b/content/browser/web_contents/web_contents_view_aura.cc
+index d3ea49e322826..27f84106e66ea 100644
+--- a/content/browser/web_contents/web_contents_view_aura.cc
++++ b/content/browser/web_contents/web_contents_view_aura.cc
+@@ -1276,7 +1276,8 @@ gfx::Size WebContentsViewAura::GetMaximumSize() const {
+ void WebContentsViewAura::OnBoundsChanged(const gfx::Rect& old_bounds,
+                                           const gfx::Rect& new_bounds) {
+   RenderWidgetHostView* rwhv = web_contents_->GetRenderWidgetHostView();
+-  if (rwhv)
++  // Fix gesture scrolling
++  if (rwhv && (old_bounds.size() != new_bounds.size()))
+     rwhv->SetSize(new_bounds.size());
+ 
+   // Constrained web dialogs, need to be kept centered over our content area.
+diff --git a/ui/views/controls/scroll_view.cc b/ui/views/controls/scroll_view.cc
+index 26089cab53c14..4a67a731dd2a9 100644
+--- a/ui/views/controls/scroll_view.cc
++++ b/ui/views/controls/scroll_view.cc
+@@ -526,10 +526,20 @@ void ScrollView::ClipHeightTo(int min_height, int max_height) {
+ }
+ 
+ int ScrollView::GetScrollBarLayoutWidth() const {
++  // Do not double layout calls when scroll-bars are hidden or disabled
++  if (vertical_scroll_bar_mode_ == ScrollBarMode::kHiddenButEnabled ||
++      vertical_scroll_bar_mode_ == ScrollBarMode::kDisabled)
++    return 0;
++
+   return vert_sb_->OverlapsContent() ? 0 : vert_sb_->GetThickness();
+ }
+ 
+ int ScrollView::GetScrollBarLayoutHeight() const {
++  // Do not double layout calls when scroll-bars are hidden or disabled
++  if (horizontal_scroll_bar_mode_ == ScrollBarMode::kHiddenButEnabled ||
++      horizontal_scroll_bar_mode_ == ScrollBarMode::kDisabled)
++    return 0;
++
+   return horiz_sb_->OverlapsContent() ? 0 : horiz_sb_->GetThickness();
+ }
+ 
+@@ -695,13 +705,13 @@ void ScrollView::Layout() {
+   SetControlVisibility(corner_view_.get(), corner_view_required);
+ 
+   // Default.
+-  if (!horiz_sb_required) {
++  if (!horiz_sb_required && horiz_sb_layout_height) {
+     viewport_bounds.set_height(viewport_bounds.height() +
+                                horiz_sb_layout_height);
+     should_layout_contents = true;
+   }
+   // Default.
+-  if (!vert_sb_required) {
++  if (!vert_sb_required && vert_sb_layout_width) {
+     viewport_bounds.set_width(viewport_bounds.width() + vert_sb_layout_width);
+     should_layout_contents = true;
+   }

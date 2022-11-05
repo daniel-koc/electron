@@ -35,7 +35,7 @@ class WebContentsView : public View,
 
   // Public APIs.
   gin::Handle<WebContents> GetWebContents(v8::Isolate* isolate);
-  void SetBackgroundColor(absl::optional<WrappedSkColor> color);
+  void SetBackgroundColor(absl::optional<WrappedSkColor> color) override;
 
   int NonClientHitTest(const gfx::Point& point) override;
 

@@ -14,7 +14,13 @@
 #include "shell/browser/ui/inspectable_web_contents.h"
 #include "shell/browser/ui/inspectable_web_contents_delegate.h"
 #include "shell/browser/ui/inspectable_web_contents_view_delegate.h"
+#include "shell/browser/ui/views/scroll/native_view_host_scroll_with_layers.h"
+#include "shell/browser/ui/views/scroll/web_view_scroll_with_layers.h"
+#include "shell/browser/web_contents_preferences.h"
 #include "ui/base/models/image_model.h"
+#include "ui/base/ui_base_features.h"
+#include "ui/display/screen.h"
+#include "ui/gfx/image/image.h"
 #include "ui/views/controls/label.h"
 #include "ui/views/controls/webview/webview.h"
 #include "ui/views/widget/widget.h"
@@ -82,11 +88,31 @@ InspectableWebContentsView* CreateInspectableContentsView(
 InspectableWebContentsViewViews::InspectableWebContentsViewViews(
     InspectableWebContents* inspectable_web_contents)
     : InspectableWebContentsView(inspectable_web_contents),
-      devtools_web_view_(new views::WebView(nullptr)),
       title_(u"Developer Tools") {
+  WebContentsPreferences* web_contents_preferences =
+      WebContentsPreferences::From(inspectable_web_contents_->GetWebContents());
+  const bool scroll_with_layers_enabled =
+      base::FeatureList::IsEnabled(::features::kUiCompositorScrollWithLayers);
+
+  if (scroll_with_layers_enabled && web_contents_preferences &&
+      web_contents_preferences->OptimizeForScroll()) {
+    devtools_web_view_ = new views::WebView(
+        std::make_unique<NativeViewHostScrollWithLayers>(), nullptr);
+  } else {
+    devtools_web_view_ = new views::WebView(nullptr);
+  }
+
   if (!inspectable_web_contents_->IsGuest() &&
       inspectable_web_contents_->GetWebContents()->GetNativeView()) {
-    auto* contents_web_view = new views::WebView(nullptr);
+    views::WebView* contents_web_view = nullptr;
+    if (scroll_with_layers_enabled && web_contents_preferences &&
+        web_contents_preferences->OptimizeForScroll()) {
+      contents_web_view = new WebViewScrollWithLayers(
+          this, std::make_unique<NativeViewHostScrollWithLayers>(), nullptr);
+    } else {
+      contents_web_view = new views::WebView(nullptr);
+    }
+
     contents_web_view->SetWebContents(
         inspectable_web_contents_->GetWebContents());
     contents_web_view_ = contents_web_view;
@@ -215,6 +241,8 @@ void InspectableWebContentsViewViews::SetTitle(const std::u16string& title) {
 }
 
 void InspectableWebContentsViewViews::Layout() {
+  views::View::Layout();
+
   if (!devtools_web_view_->GetVisible()) {
     contents_web_view_->SetBoundsRect(GetContentsBounds());
     return;
@@ -236,6 +264,21 @@ void InspectableWebContentsViewViews::Layout() {
 
   if (GetDelegate())
     GetDelegate()->DevToolsResized();
+}
+
+void InspectableWebContentsViewViews::OnPaintBackground(gfx::Canvas* canvas) {
+  if (stop_paint_background_)
+    return;
+
+  views::View::OnPaintBackground(canvas);
+}
+
+void InspectableWebContentsViewViews::SetStopPaintBackground(
+    bool stop_paint_background) {
+  if (stop_paint_background_ != stop_paint_background)
+    SchedulePaint();
+
+  stop_paint_background_ = stop_paint_background;
 }
 
 }  // namespace electron

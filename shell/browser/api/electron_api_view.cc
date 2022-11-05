@@ -167,7 +167,6 @@ class JSLayoutManager : public views::LayoutManagerBase {
 };
 
 View::View(views::View* view) : view_(view) {
-  view_->set_owned_by_client();
   view_->AddObserver(this);
 }
 
@@ -201,6 +200,7 @@ void View::AddChildViewAt(gin::Handle<View> child,
   // upstream.
   ScopedCAActionDisabler disable_animations;
 #endif
+  child->view()->set_owned_by_client();
   view_->AddChildViewAt(child->view(), index);
 }
 

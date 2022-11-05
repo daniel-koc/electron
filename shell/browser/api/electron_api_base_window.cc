@@ -308,6 +308,7 @@ void BaseWindow::OnWindowMessage(UINT message, WPARAM w_param, LPARAM l_param) {
 
 void BaseWindow::SetContentView(gin::Handle<View> view) {
   content_view_.Reset(JavascriptEnvironment::GetIsolate(), view.ToV8());
+  view->view()->set_owned_by_client();
   window_->SetContentView(view->view());
 }
 
